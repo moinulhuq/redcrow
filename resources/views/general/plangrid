@@ -1,0 +1,101 @@
+<div ng-app="taggingApp" ng-controller="tagController">
+<leaflet width="500px" height="500px" center="center" layers="layers" defaults="defaults" markers="markers"></leaflet>
+    {{tagNames | json}}
+</div>
+
+
+angular.module("taggingApp", ["leaflet-directive"])
+.controller('tagController', TagController);
+
+//string.format helper
+String.prototype.format = function() {
+    var formatted = this;
+    for (var i = 0; i < arguments.length; i++) {
+        var regexp = new RegExp('\\{'+i+'\\}', 'gi');
+        formatted = formatted.replace(regexp, arguments[i]);
+    }
+    return formatted;
+};
+
+function TagController($scope, $compile, $log, $timeout, leafletData, leafletBoundsHelpers) {
+    var markerCount = 0;
+    var html = '<div>Please add tag name: <input ng-model="tagNames.m{0}"/><button ng-click="remove(\'m{0}\')">remove tag</button></div>marker key: m{0}'; //.format(markerCount); //template for marker
+
+    // image size = 1.296px × 864px
+    var maxBounds = leafletBoundsHelpers.createBoundsFromArray([[-540, -960], [540, 960]]);
+    angular.extend($scope, {
+        tagNames: {
+        	m0: 'first tag'
+       	}, // tagnames
+        defaults: {
+          scrollWheelZoom: false,
+          crs: 'Simple',
+          maxZoom: 2
+        },
+
+        markers: {
+            m0: {
+                lat: 33,
+                lng: 4,
+                //message: "I'm a static marker - m" + markerCount,
+            	message: html.format(markerCount++),
+                getMessageScope: function() { return $scope;},
+                icon: {},
+            }
+        },
+        center: {
+            lat: 0,
+            lng: 0,
+            zoom: 0
+        },
+        maxBounds: maxBounds,
+        layers: {
+            baselayers: {
+                home: {
+                    name: 'home',
+                    type: 'imageOverlay',
+                    url: 'http://www.studioats.com/wp-content/uploads/2011/05/A2-1A-First-Floor-Plan-Area-A-12x18.jpg',
+                    bounds: [[-540, -960], [540, 960]],
+                    layerParams: {
+                      noWrap: true,
+                      attribution: 'demo tile...'
+                    }
+                }
+            }
+        }
+    });
+
+    $scope.$on('leafletDirectiveMarker.mouseover', function(e, args) {
+        args.leafletEvent.target.openPopup();
+	});
+
+    /*$scope.$on('leafletDirectiveMarker.mouseout', function(e, args) {
+        args.leafletEvent.target.closePopup();
+	});*/
+
+    $scope.remove = function(markerName) {
+    	// remove marker
+        if ( $scope.tagNames && $scope.tagNames[markerName] )
+            delete $scope.tagNames[markerName];
+
+        delete $scope.markers[markerName];
+    };
+
+    $scope.$on('leafletDirectiveMap.click', function(scope, e) {
+    	//console.log(e, pos);
+        var lat = e.leafletEvent.latlng.lat,
+            lng = e.leafletEvent.latlng.lng;
+        //alert("Lat, Lon : " + e.leafletEvent.latlng.lat + ", " + e.leafletEvent.latlng.lng)
+
+        $scope.markers['m'+markerCount++] = {
+                lat: lat,
+                lng: lng,
+                //message: "I'm a static marker - m" + markerCount,
+            	message: html.format(markerCount),
+                getMessageScope: function() { return $scope;},
+                icon: {},
+            };
+
+
+	});
+}
